@@ -31,15 +31,13 @@ lint: ## check style with flake8
 	flake8 dj_request_correlation tests
 
 test: ## run tests quickly with the default Python
-	python runtests.py tests
+	py.test tests
 
 test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source dj_request_correlation runtests.py tests
-	coverage report -m
-	coverage html
+	py.test --cov=dj_request_correlation --cov-report=html tests/
 	open htmlcov/index.html
 
 release: clean ## package and upload a release

@@ -10,8 +10,6 @@ Tests for `dj-request-correlation` models module.
 
 from django.test import SimpleTestCase
 
-from dj_request_correlation import middleware
-
 
 class TestLoadedMiddleware(SimpleTestCase):
     """ An integration test that actually loads and uses the middleware. """
@@ -23,4 +21,3 @@ class TestLoadedMiddleware(SimpleTestCase):
     def test_response_id_is_used(self):
         response = self.client.get("/", {}, HTTP_X_REQUEST_ID="Fake")
         self.assertEqual(response.get("X-Request-Id"), "Fake")
-
