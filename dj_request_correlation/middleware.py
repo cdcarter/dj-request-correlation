@@ -66,6 +66,59 @@ parent_logger = logging.getLogger("dj_request_correlation")
 canonical_logger = logging.getLogger("dj_request_correlation.canonical")
 
 
+class RequestTracker:
+    def __init__(self, request):
+        self.request = request
+        self.response = None
+        self.canonical_context = {}
+        self.entered = False
+        self.exited = False
+
+    def __enter__(self,):
+        self.canonical_context = dict(
+            _start_perf_counter=time.perf_counter(),
+            _start_process_time=time.process_time(),
+        )
+        self.entered = True
+        return self
+
+    def set_response(self, response):
+        self.response = response
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        assert (
+            self.entered
+        ), f"{__class__.__name__} wasn't entered, so you cannot exit it"
+        self.canonical_context.update(
+            dict(
+                _end_perf_counter=time.perf_counter(),
+                _end_process_time=time.process_time(),
+            )
+        )
+        self.exited = True
+
+    def _check_exited(self):
+        assert (
+            self.exited
+        ), f"{__class__.__name__} hasn't exited yet, so statistics aren't yet available"
+
+    @property
+    def perf_counter(self):
+        self._check_exited()
+        return (
+            self.canonical_context["_end_perf_counter"]
+            - self.canonical_context["_start_perf_counter"]
+        )
+
+    @property
+    def process_time(self):
+        self._check_exited()
+        return (
+            self.canonical_context["_end_process_time"]
+            - self.canonical_context["_start_process_time"]
+        )
+
+
 class CanonicalLogLineMiddleware(ClassBasedMiddleware):
     """ CanonicalLogLineMiddleware emits a (you guessed it) canonical log line for
     every HTTP request, to the "dj_request_correlation.canonical" logger.
@@ -75,28 +128,16 @@ class CanonicalLogLineMiddleware(ClassBasedMiddleware):
     # TODO: should_not_log view decorator? route decorator? somethin.
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        self._setup_context(request)
-        response = super().__call__(request=request)
-        self._collapse_context(request, response)
-        self._log_response(request, response)
+        with RequestTracker(request) as ctx:
+            response = super().__call__(request=request)
+            ctx.set_response(response)
+
+        self._log_response(request, response, ctx)
         return response
 
-    def _setup_context(self, request: HttpRequest) -> None:
-        request.canonical_context = dict(
-            _start_perf_counter=time.perf_counter(),
-            _start_process_time=time.process_time(),
-        )
-
-    def _collapse_context(self, request: HttpRequest, response: HttpResponse) -> None:
-        request.canonical_context.update(
-            dict(
-                _end_perf_counter=time.perf_counter(),
-                _end_process_time=time.process_time(),
-                _sqltime=None,
-            )
-        )
-
-    def _log_response(self, request: HttpRequest, response: HttpResponse) -> None:
+    def _log_response(
+        self, request: HttpRequest, response: HttpResponse, ctx: RequestTracker
+    ) -> None:
         # breakpoint()
         log = logfmt(
             request_id=request.request_id,
@@ -108,10 +149,7 @@ class CanonicalLogLineMiddleware(ClassBasedMiddleware):
             response_content_type=response["Content-Type"],
             response_status=response.status_code,
             user_id=getattr(getattr(request, "user", {}), "id", None),
-            perf_counter=request.canonical_context["_end_perf_counter"]
-            - request.canonical_context["_start_perf_counter"],
-            process_time=request.canonical_context["_end_process_time"]
-            - request.canonical_context["_start_process_time"],
-            sql_time=request.canonical_context["_sqltime"],
+            perf_counter=ctx.perf_counter,
+            process_time=ctx.process_time,
         )
         canonical_logger.info(log)
