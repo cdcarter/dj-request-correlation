@@ -34,6 +34,8 @@ Then, add the middleware to the top of your `MIDDLEWARE` setting:
     )
 ```
 
+As the package grows, I'll first be focusing on implementing the core featureset I want, before coming up with an easier setup/configuration mechanism. This means that for now, you'll need to configure each feature one at a time.
+
 # Features
 
 ## RequestIDMiddleware
