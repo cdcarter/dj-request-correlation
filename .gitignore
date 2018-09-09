@@ -45,3 +45,5 @@ output/*.html
 output/*/index.html
 
 .vscode
+pytestdebug.log
+.mypy_cache
