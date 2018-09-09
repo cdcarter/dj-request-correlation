@@ -1,12 +1,20 @@
+""" most of dj-request-correlation is django MIDDLEWARE classes
+
+we use "new" (its been this way for a looong time) style MIDDLEWARE
+"""
 import uuid
+import time
+import logging
 from typing import Callable
 
+from django.db import connection
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
 
+
 from . import current_request_id
-from .utils import ClassBasedMiddleware
+from .utils import ClassBasedMiddleware, logfmt
 
 request_id_header: str = getattr(settings, "REQUEST_ID_HEADER", "X-Request-Id")
 
@@ -53,3 +61,57 @@ class RequestIDMiddleware(ClassBasedMiddleware):
         response[request_id_header] = req_id
         return response
 
+
+parent_logger = logging.getLogger("dj_request_correlation")
+canonical_logger = logging.getLogger("dj_request_correlation.canonical")
+
+
+class CanonicalLogLineMiddleware(ClassBasedMiddleware):
+    """ CanonicalLogLineMiddleware emits a (you guessed it) canonical log line for
+    every HTTP request, to the "dj_request_correlation.canonical" logger.
+    """
+
+    # TODO: installation specific parameters
+    # TODO: should_not_log view decorator? route decorator? somethin.
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        self._setup_context(request)
+        response = super().__call__(request=request)
+        self._collapse_context(request, response)
+        self._log_response(request, response)
+        return response
+
+    def _setup_context(self, request: HttpRequest) -> None:
+        request.canonical_context = dict(
+            _start_perf_counter=time.perf_counter(),
+            _start_process_time=time.process_time(),
+        )
+
+    def _collapse_context(self, request: HttpRequest, response: HttpResponse) -> None:
+        request.canonical_context.update(
+            dict(
+                _end_perf_counter=time.perf_counter(),
+                _end_process_time=time.process_time(),
+                _sqltime=None,
+            )
+        )
+
+    def _log_response(self, request: HttpRequest, response: HttpResponse) -> None:
+        # breakpoint()
+        log = logfmt(
+            request_id=request.request_id,
+            request_content_type=request.content_type,
+            request_ip=request.META["REMOTE_ADDR"],
+            request_method=request.method,
+            request_path=request.path,
+            user_agent=request.META["HTTP_USER_AGENT"],
+            response_content_type=response["Content-Type"],
+            response_status=response.status_code,
+            user_id=getattr(getattr(request, "user", {}), "id", None),
+            perf_counter=request.canonical_context["_end_perf_counter"]
+            - request.canonical_context["_start_perf_counter"],
+            process_time=request.canonical_context["_end_process_time"]
+            - request.canonical_context["_start_process_time"],
+            sql_time=request.canonical_context["_sqltime"],
+        )
+        canonical_logger.info(log)

@@ -1,3 +1,4 @@
+import shlex
 from abc import ABC, abstractmethod
 from typing import Callable, Any, Iterable, Mapping, Optional
 
@@ -37,3 +38,25 @@ class ClassBasedMiddleware(ABC):
         self, request: HttpRequest, response: SimpleTemplateResponse
     ) -> SimpleTemplateResponse:
         return response
+
+
+def logfmt(**kwargs) -> str:
+    """ format the `kwargs` dict in logfmt/splunk standard """
+
+    # TODO: wow. this isn't very good.
+
+    line = []
+    for key, value in kwargs.items():
+        if value is None:
+            line.append(f"{key}=")
+            continue
+        else:
+            if isinstance(value, (str,)):
+                value = shlex.quote(value)
+            elif isinstance(value, (dict, object)):
+                value = str(value)
+
+        line.append(f"{key}={value}")
+
+    return " ".join(line)
+

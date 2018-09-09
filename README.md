@@ -43,6 +43,9 @@ As the package grows, I'll first be focusing on implementing the core featureset
 * Make the request correlation ID available in a global ContextVar for loggers and other code that doesn't get an explicit request object.
 * Generate a UUID for the request if one wasn't provided by the client (or router).
 
+## `dj_request_correlation.utils.logfmt` helper
+* Turn a dict of `kwargs` into the "unofficial" [logfmt](https://brandur.org/logfmt) output format, which is also [recommended by Splunk](http://dev.splunk.com/view/logging-best-practices/SP-CAAAFCK) for automatic field extraction.
+
 # Running Tests
 
 Does the code actually work?
