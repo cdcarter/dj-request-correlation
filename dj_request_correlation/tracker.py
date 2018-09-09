@@ -28,10 +28,11 @@ def ready_property(arg):
 class Tracker(ContextManager):  # pylint: disable=E0239
     """ tracker is a timing context manager that you can do other tracking with """
 
-    entered: bool = False
-    exited: bool = False
+    _entered: bool = False
+    _exited: bool = False
+    ready: bool = False
     ctx: ChainMap
-    parent: "Tracker"
+    parent: "Tracker" = None
     children: Mapping[str, "Tracker"]
 
     def __init__(
@@ -49,6 +50,10 @@ class Tracker(ContextManager):  # pylint: disable=E0239
             self.parent = parent
 
     def __enter__(self,) -> "Tracker":
+        if self.parent:
+            assert (
+                self.parent._entered
+            ), "the parent tracker must be entered to exit the child tracker"
         self._enter_tracker()
         self.ctx.update(
             dict(
@@ -57,12 +62,15 @@ class Tracker(ContextManager):  # pylint: disable=E0239
                 _start_time=time.time(),
             )
         )
-        self.entered = True
+        self._entered = True
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        for child in self.children.values():
+            if not child._exited:
+                child.__exit__()
         assert (
-            self.entered
+            self._entered
         ), f"cannot exit a {__class__.__name__} that hasn't been entered"
         self.ctx.update(
             dict(
@@ -72,7 +80,7 @@ class Tracker(ContextManager):  # pylint: disable=E0239
             )
         )
         self._exit_tracker()
-        self.exited = True
+        self._exited = True
 
     def _enter_tracker(self,):
         """ subclasses may implement behavior for tracker start """
@@ -89,15 +97,19 @@ class Tracker(ContextManager):  # pylint: disable=E0239
         return True
 
     def raise_if_not_ready(self):
+        if self.ready:
+            return
         assert (
-            self.exited
+            self._exited
         ), f"{__class__.__name__} hasn't exited yet, so statistics aren't yet available"
         assert (
             self._check_complete()
         ), f"{__class__.__name__} hasn't been passed all necessary data yet"
+        self.ready = True
 
-    def track(self, name, tracker_cls=None) -> "Tracker":
+    def new_child(self, name, tracker_cls=None) -> "Tracker":
         """ create a child tracker """
+
         if name in self.children.keys():
             raise ValueError(f"Child tracker named {name} already exists!")
         if tracker_cls is None:
@@ -124,6 +136,8 @@ class Tracker(ContextManager):  # pylint: disable=E0239
     def log(self):
         log = self._prepare_log()
 
+        # TODO: Rollup child time and also unaccounted for time
+
         log.update(
             dict(
                 time=self.time,
@@ -139,17 +153,27 @@ class RequestTracker(Tracker):
 
     # TODO: installation specific parameters
 
-    request: HttpRequest
-    response: HttpResponse
-
     def __init__(self, request):
         super().__init__()
-        self.request = request
+        self.ctx["request"] = request
 
     def _check_complete(self):
         assert (
             self.response
         ), f"stats for {__class__.__name__} not available til response is set"
+        return True
+
+    @property
+    def response(self) -> HttpResponse:
+        return self.ctx["response"]
+
+    @response.setter
+    def response(self, value: HttpResponse):
+        self.ctx["response"] = value
+
+    @property
+    def request(self) -> HttpRequest:
+        return self.ctx["request"]
 
     def _prepare_log(self,) -> Mapping:
         return dict(

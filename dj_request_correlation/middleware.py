@@ -71,6 +71,7 @@ class CanonicalLogLineMiddleware(ClassBasedMiddleware):
     """
 
     # TODO: should_not_log view decorator? route decorator? somethin.
+    # TODO: what happens with various exceptions blah
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         with RequestTracker(request) as tracker:

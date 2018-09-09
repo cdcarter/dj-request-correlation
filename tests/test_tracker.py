@@ -9,7 +9,7 @@ class TestTracker(TestCase):
         tracker = Tracker()
         with tracker:
             time.sleep(2)
-            with tracker.track("sub") as child_tracker:
+            with tracker.new_child("sub") as child_tracker:
                 time.sleep(2)
 
-        tracker.log
+        self.assertGreater(tracker.time, child_tracker.time)
