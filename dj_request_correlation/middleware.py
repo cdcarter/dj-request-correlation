@@ -3,11 +3,9 @@
 we use "new" (its been this way for a looong time) style MIDDLEWARE
 """
 import uuid
-import time
 import logging
 from typing import Callable
 
-from django.db import connection
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
@@ -15,6 +13,7 @@ from django.http.response import HttpResponse
 
 from . import current_request_id
 from .utils import ClassBasedMiddleware, logfmt
+from .tracker import RequestTracker
 
 request_id_header: str = getattr(settings, "REQUEST_ID_HEADER", "X-Request-Id")
 
@@ -66,90 +65,17 @@ parent_logger = logging.getLogger("dj_request_correlation")
 canonical_logger = logging.getLogger("dj_request_correlation.canonical")
 
 
-class RequestTracker:
-    def __init__(self, request):
-        self.request = request
-        self.response = None
-        self.canonical_context = {}
-        self.entered = False
-        self.exited = False
-
-    def __enter__(self,):
-        self.canonical_context = dict(
-            _start_perf_counter=time.perf_counter(),
-            _start_process_time=time.process_time(),
-        )
-        self.entered = True
-        return self
-
-    def set_response(self, response):
-        self.response = response
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        assert (
-            self.entered
-        ), f"{__class__.__name__} wasn't entered, so you cannot exit it"
-        self.canonical_context.update(
-            dict(
-                _end_perf_counter=time.perf_counter(),
-                _end_process_time=time.process_time(),
-            )
-        )
-        self.exited = True
-
-    def _check_exited(self):
-        assert (
-            self.exited
-        ), f"{__class__.__name__} hasn't exited yet, so statistics aren't yet available"
-
-    @property
-    def perf_counter(self):
-        self._check_exited()
-        return (
-            self.canonical_context["_end_perf_counter"]
-            - self.canonical_context["_start_perf_counter"]
-        )
-
-    @property
-    def process_time(self):
-        self._check_exited()
-        return (
-            self.canonical_context["_end_process_time"]
-            - self.canonical_context["_start_process_time"]
-        )
-
-
 class CanonicalLogLineMiddleware(ClassBasedMiddleware):
     """ CanonicalLogLineMiddleware emits a (you guessed it) canonical log line for
     every HTTP request, to the "dj_request_correlation.canonical" logger.
     """
 
-    # TODO: installation specific parameters
     # TODO: should_not_log view decorator? route decorator? somethin.
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        with RequestTracker(request) as ctx:
+        with RequestTracker(request) as tracker:
             response = super().__call__(request=request)
-            ctx.set_response(response)
+            tracker.response = response
 
-        self._log_response(request, response, ctx)
+        canonical_logger.info(logfmt(**tracker.log))
         return response
-
-    def _log_response(
-        self, request: HttpRequest, response: HttpResponse, ctx: RequestTracker
-    ) -> None:
-        # breakpoint()
-        log = logfmt(
-            request_id=request.request_id,
-            request_content_type=request.content_type,
-            request_ip=request.META["REMOTE_ADDR"],
-            request_method=request.method,
-            request_path=request.path,
-            user_agent=request.META["HTTP_USER_AGENT"],
-            response_content_type=response["Content-Type"],
-            response_status=response.status_code,
-            user_id=getattr(getattr(request, "user", {}), "id", None),
-            perf_counter=ctx.perf_counter,
-            process_time=ctx.process_time,
-        )
-        canonical_logger.info(log)
