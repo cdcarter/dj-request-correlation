@@ -5,9 +5,6 @@ language: python
 python:
   - "3.7"
 
-env: 
-  - TOX_ENV=py37-django-20
-
 matrix:
   fast_finish: true
 
@@ -15,7 +12,4 @@ matrix:
 install: pip install -r requirements_test.txt
 
 # command to run tests using coverage, e.g. python setup.py test
-script: tox -e $TOX_ENV
-
-after_success:
-  - codecov -e TOX_ENV
+script: py.test --cov=dj_request_correlation --cov-report=html tests/

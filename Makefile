@@ -27,14 +27,11 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 
-lint: ## check style with flake8
-	flake8 dj_request_correlation tests
+lint: ## check style with pylint
+	pylint dj_request_correlation 
 
 test: ## run tests quickly with the default Python
 	py.test tests
-
-test-all: ## run tests on every Python version with tox
-	tox
 
 coverage: ## check code coverage quickly with the default Python
 	py.test --cov=dj_request_correlation --cov-report=html tests/

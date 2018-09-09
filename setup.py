@@ -41,8 +41,8 @@ if sys.argv[-1] == "tag":
     os.system("git push --tags")
     sys.exit()
 
-README = open("README.rst").read()
-HISTORY = open("HISTORY.rst").read().replace(".. :changelog:", "")
+README = open("README.md").read()
+HISTORY = open("HISTORY.md").read()
 
 setup(
     name="dj-request-correlation",

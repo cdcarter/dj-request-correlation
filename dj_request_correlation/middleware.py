@@ -1,4 +1,3 @@
-
 import uuid
 from typing import Callable
 
@@ -53,3 +52,4 @@ class RequestIDMiddleware(ClassBasedMiddleware):
         # include the request ID (in the same header) in the response
         response[request_id_header] = req_id
         return response
+

@@ -1,17 +1,13 @@
-============
-Contributing
-============
+# Contributing
 
 Contributions are welcome, and they are greatly appreciated! Every
 little bit helps, and credit will always be given. 
 
 You can contribute in many ways:
 
-Types of Contributions
-----------------------
+## Types of Contributions
 
-Report Bugs
-~~~~~~~~~~~
+### Report Bugs
 
 Report bugs at https://github.com/cdcarter/dj-request-correlation/issues.
 
@@ -21,27 +17,23 @@ If you are reporting a bug, please include:
 * Any details about your local setup that might be helpful in troubleshooting.
 * Detailed steps to reproduce the bug.
 
-Fix Bugs
-~~~~~~~~
+### Fix Bugs
 
 Look through the GitHub issues for bugs. Anything tagged with "bug"
 is open to whoever wants to implement it.
 
-Implement Features
-~~~~~~~~~~~~~~~~~~
+### Implement Features
 
 Look through the GitHub issues for features. Anything tagged with "feature"
 is open to whoever wants to implement it.
 
-Write Documentation
-~~~~~~~~~~~~~~~~~~~
+### Write Documentation
 
-Django Request Correlation could always use more documentation, whether as part of the 
-official Django Request Correlation docs, in docstrings, or even on the web in blog posts,
+dj-request-correlation could always use more documentation, whether as part of the 
+official dj-request-correlation docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
-Submit Feedback
-~~~~~~~~~~~~~~~
+### Submit Feedback
 
 The best way to send feedback is to file an issue at https://github.com/cdcarter/dj-request-correlation/issues.
 
@@ -52,8 +44,7 @@ If you are proposing a feature:
 * Remember that this is a volunteer-driven project, and that contributions
   are welcome :)
 
-Get Started!
-------------
+## Get Started!
 
 Ready to contribute? Here's how to set up `dj-request-correlation` for local development.
 
@@ -62,51 +53,42 @@ Ready to contribute? Here's how to set up `dj-request-correlation` for local dev
 
     $ git clone git@github.com:your_name_here/dj-request-correlation.git
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
+3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development
 
-    $ mkvirtualenv dj-request-correlation
+    $ python3 -m venv dj-request-correlation
     $ cd dj-request-correlation/
     $ python setup.py develop
 
 4. Create a branch for local development::
 
-    $ git checkout -b name-of-your-bugfix-or-feature
+    $ git checkout -b feature/name-of-your-bugfix-or-feature
 
    Now you can make your changes locally.
 
-5. When you're done making changes, check that your changes pass flake8 and the
-   tests, including testing other Python versions with tox::
+5. When you're done making changes, check that your changes pass pylint and the
+   tests:
 
-        $ flake8 dj_request_correlation tests
-        $ python setup.py test
-        $ tox
+    $ pylint dj_request_correlation 
+    $ py.test
 
-   To get flake8 and tox, just pip install them into your virtualenv. 
+   To get pylint and pytest, just pip install -r requirements_test.py. 
 
-6. Commit your changes and push your branch to GitHub::
+6. Commit your changes and push your branch to GitHub:
 
     $ git add .
     $ git commit -m "Your detailed description of your changes."
-    $ git push origin name-of-your-bugfix-or-feature
+    $ git push
 
 7. Submit a pull request through the GitHub website.
 
-Pull Request Guidelines
------------------------
+## Pull Request Guidelines
 
 Before you submit a pull request, check that it meets these guidelines:
 
 1. The pull request should include tests.
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
-   feature to the list in README.rst.
-3. The pull request should work for Python 2.6, 2.7, and 3.3, and for PyPy. Check 
+   feature to the list in README.md.
+3. The pull request should work under Django 2.0+ and Python 3.7+. Check 
    https://travis-ci.org/cdcarter/dj-request-correlation/pull_requests
    and make sure that the tests pass for all supported Python versions.
-
-Tips
-----
-
-To run a subset of tests::
-
-    $ python -m unittest tests.test_dj_request_correlation
