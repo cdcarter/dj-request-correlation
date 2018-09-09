@@ -1,4 +1,4 @@
-* Django Request Correlation version:
+* dj-request-correlation version:
 * Django version:
 * Python version:
 * Operating System:

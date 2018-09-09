@@ -20,11 +20,11 @@ The "definitive" implementation of X-Request-Id is [the one used by Heroku](http
 
 # Quickstart
 
-Install Django Request Correlation::
+Install dj-request-correlation:
 
     pip install dj-request-correlation
 
-Then, add the middleware to the top of your `MIDDLEWARE` setting :
+Then, add the middleware to the top of your `MIDDLEWARE` setting:
 
 ```
     MIDDLEWARE = (
